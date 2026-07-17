@@ -89,3 +89,8 @@ model Message {
   date      DateTime @default(now())
   read      Boolean  @default(false)
 }
+
+model Settings {
+  id       Int    @id @default(1)
+  password String @default("admin123")
+}
