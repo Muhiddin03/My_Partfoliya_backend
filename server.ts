@@ -3,8 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import path from "path";
 
 dotenv.config();
 
@@ -14,18 +12,12 @@ const prisma = new PrismaClient();
 
 // Middlewares
 app.use(cors());
+// Set payload limit very high to support image uploads in base64 format (up to 50MB)
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Cloudinary config
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 // Multer config for in-memory uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Authentication
 const getAdminPassword = (): string => process.env.ADMIN_PASSWORD || "admin123";
@@ -181,25 +173,22 @@ app.patch("/api/messages/:id/read", authenticateAdmin, async (req, res) => {
   }
 });
 
-// 8. Upload File to Cloudinary (Admin)
+// 8. Upload File directly as Base64 URL (Admin)
 app.post("/api/upload", authenticateAdmin, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Fayl topilmadi" });
     }
 
+    // Faylni Base64 formatiga o'tkazib, Data URL qilib qaytaramiz
     const b64 = Buffer.from(req.file.buffer).toString("base64");
     const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
     
-    const result = await cloudinary.uploader.upload(dataURI, {
-      folder: "portfolio_uploads",
-      resource_type: "auto"
-    });
-
-    res.json({ url: result.secure_url });
+    // Frontend bu dataURI ni oddiy link kabi qabul qilib, DB ga shu holaticha saqlaydi
+    res.json({ url: dataURI });
   } catch (error) {
     console.error("Upload xatoligi:", error);
-    res.status(500).json({ error: "Fayl yuklashda xatolik yuz berdi." });
+    res.status(500).json({ error: "Fayl ishlashda xatolik yuz berdi." });
   }
 });
 
