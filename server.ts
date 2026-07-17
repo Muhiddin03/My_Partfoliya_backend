@@ -1,0 +1,213 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import path from "path";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const prisma = new PrismaClient();
+
+// Middlewares
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Multer config for in-memory uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Authentication
+const getAdminPassword = (): string => process.env.ADMIN_PASSWORD || "admin123";
+
+const authenticateAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.status(401).json({ error: "Ruxsat etilmadi: Token topilmadi." });
+    return;
+  }
+  const token = authHeader.replace("Bearer ", "");
+  if (token === getAdminPassword()) {
+    next();
+  } else {
+    res.status(403).json({ error: "Ruxsat etilmadi: Noto'g'ri parol." });
+  }
+};
+
+// --- API ROUTES ---
+
+// 1. Get Portfolio Data
+app.get("/api/portfolio", async (req, res) => {
+  try {
+    const profile = await prisma.profile.findFirst();
+    const skills = await prisma.skill.findMany({ orderBy: { order: 'asc' } });
+    const projects = await prisma.project.findMany({ orderBy: { order: 'asc' } });
+    const education = await prisma.education.findMany({ orderBy: { order: 'asc' } });
+    const workplaces = await prisma.workplace.findMany({ orderBy: { order: 'asc' } });
+    const services = await prisma.service.findMany({ orderBy: { order: 'asc' } });
+    const achievements = await prisma.achievement.findMany({ orderBy: { order: 'asc' } });
+
+    // If profile is empty (first run), return an empty structure
+    if (!profile) {
+      return res.json({ profile: {}, skills: [], projects: [], education: [], workplaces: [], services: [], achievements: [] });
+    }
+
+    res.json({
+      profile,
+      skills,
+      projects,
+      education,
+      workplaces,
+      services,
+      achievements
+    });
+  } catch (error) {
+    console.error("GET /api/portfolio error:", error);
+    res.status(500).json({ error: "Server ichki xatoligi" });
+  }
+});
+
+// 2. Login Endpoint
+app.post("/api/login", (req, res) => {
+  const { password } = req.body;
+  if (password === getAdminPassword()) {
+    res.json({ success: true, token: password });
+  } else {
+    res.status(401).json({ success: false, error: "Noto'g'ri parol!" });
+  }
+});
+
+// 3. Update Portfolio Data (Admin only)
+app.post("/api/portfolio", authenticateAdmin, async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Update Profile
+    if (data.profile) {
+      const existing = await prisma.profile.findFirst();
+      if (existing) {
+        await prisma.profile.update({ where: { id: existing.id }, data: data.profile });
+      } else {
+        await prisma.profile.create({ data: data.profile });
+      }
+    }
+
+    // A helper to sync arrays
+    const syncTable = async (model: any, items: any[]) => {
+      await model.deleteMany(); // Clear existing
+      if (items && items.length > 0) {
+        // Assign orders based on index
+        const mapped = items.map((item: any, idx: number) => {
+          const { id, ...rest } = item;
+          return { ...rest, order: idx };
+        });
+        await model.createMany({ data: mapped });
+      }
+    };
+
+    if (data.skills) await syncTable(prisma.skill, data.skills);
+    if (data.projects) await syncTable(prisma.project, data.projects);
+    if (data.education) await syncTable(prisma.education, data.education);
+    if (data.workplaces) await syncTable(prisma.workplace, data.workplaces);
+    if (data.services) await syncTable(prisma.service, data.services);
+    if (data.achievements) await syncTable(prisma.achievement, data.achievements);
+
+    res.json({ success: true, message: "Portfolio muvaffaqiyatli yangilandi!" });
+  } catch (error) {
+    console.error("POST /api/portfolio error:", error);
+    res.status(500).json({ error: "Server ichki xatoligi" });
+  }
+});
+
+// 4. Submit Contact Message
+app.post("/api/messages", async (req, res) => {
+  try {
+    const { name, email, phone, message } = req.body;
+    if (!name || !message) {
+      return res.status(400).json({ error: "Ism va xabar maydonlari majburiy." });
+    }
+
+    await prisma.message.create({
+      data: { name, email, phone, message }
+    });
+
+    res.json({ success: true, message: "Xabar yuborildi." });
+  } catch (error) {
+    console.error("POST /api/messages xatolik:", error);
+    res.status(500).json({ error: "Server xatoligi." });
+  }
+});
+
+// 5. Get Messages (Admin)
+app.get("/api/messages", authenticateAdmin, async (req, res) => {
+  try {
+    const messages = await prisma.message.findMany({ orderBy: { date: 'desc' } });
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ error: "Server xatoligi" });
+  }
+});
+
+// 6. Delete Message (Admin)
+app.delete("/api/messages/:id", authenticateAdmin, async (req, res) => {
+  try {
+    await prisma.message.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Server xatoligi" });
+  }
+});
+
+// 7. Mark Message as Read (Admin)
+app.patch("/api/messages/:id/read", authenticateAdmin, async (req, res) => {
+  try {
+    await prisma.message.update({
+      where: { id: req.params.id },
+      data: { read: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Server xatoligi" });
+  }
+});
+
+// 8. Upload File to Cloudinary (Admin)
+app.post("/api/upload", authenticateAdmin, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Fayl topilmadi" });
+    }
+
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    const dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    
+    const result = await cloudinary.uploader.upload(dataURI, {
+      folder: "portfolio_uploads",
+      resource_type: "auto"
+    });
+
+    res.json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Upload xatoligi:", error);
+    res.status(500).json({ error: "Fayl yuklashda xatolik yuz berdi." });
+  }
+});
+
+// Default route
+app.get("/", (req, res) => {
+  res.send("Portfolio Backend API ishlamoqda. Vercel Frontend ga ulanishga tayyor.");
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend server is running on port ${PORT}`);
+});
