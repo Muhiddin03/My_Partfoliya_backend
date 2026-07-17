@@ -293,7 +293,32 @@ app.get("/api/seed", async (req, res) => {
       }
     });
 
-    res.json({ success: true, message: "Barcha ma'lumotlar tiklandi!" });
+    await prisma.service.deleteMany();
+    await prisma.service.createMany({
+      data: [
+        { title: "Frontend Dasturlash", description: "Foydalanuvchilar uchun qulay va zamonaviy web interfeyslar yaratish (React, Vue, Tailwind).", iconName: "Monitor", order: 1 },
+        { title: "Backend Dasturlash", description: "Mustahkam va xavfsiz server arxitekturasini qurish (Node.js, PostgreSQL).", iconName: "Server", order: 2 },
+        { title: "UI/UX Dizayn", description: "Veb-saytlar uchun zamonaviy va jalb qiluvchi dizayn yechimlari.", iconName: "PenTool", order: 3 }
+      ]
+    });
+
+    await prisma.workplace.deleteMany();
+    await prisma.workplace.createMany({
+      data: [
+        { company: "Najot Ta'lim", role: "Mentor va O'qituvchi", duration: "2024 - Hozirgacha", description: "O'quvchilarga Full Stack dasturlash bo'yicha amaliy darslar o'tish va loyihalarda yordam berish.", order: 1 },
+        { company: "Freelance", role: "Web Dasturchi", duration: "2023 - 2024", description: "Turli xil mijozlar uchun maxsus web sahifalar va tizimlar ishlab chiqish.", order: 2 }
+      ]
+    });
+
+    await prisma.achievement.deleteMany();
+    await prisma.achievement.createMany({
+      data: [
+        { title: "Eng Yaxshi Bitiruvchi Loyiha", description: "Najot Ta'lim o'quv markazida tayyorlangan CRM tizimi eng yaxshi loyiha deb topildi.", date: "Dekabr, 2023", order: 1 },
+        { title: "Hackathon G'olibi", description: "Mahalliy dasturchilar musobaqasida jamoamiz bilan faxrli o'rinni egalladik.", date: "Mart, 2024", order: 2 }
+      ]
+    });
+
+    res.json({ success: true, message: "Barcha ma'lumotlar to'liq tiklandi!" });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
