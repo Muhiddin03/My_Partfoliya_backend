@@ -231,47 +231,59 @@ app.listen(PORT, () => {
 
 app.get("/api/seed", async (req, res) => {
   try {
-    await prisma.profile.create({
-      data: {
-        name: "Muhiddin Karimjonov",
-        title: "Full Stack Dasturchi",
-        bio: "Zamonaviy va ishonchli web loyihalar yarataman.",
-        experienceYears: 2,
-        email: "karimjonovmuhiddin13@gmail.com"
-      }
-    });
+    const profileCount = await prisma.profile.count();
+    if (profileCount === 0) {
+      await prisma.profile.create({
+        data: {
+          name: "Muhiddin Karimjonov",
+          title: "Full Stack Dasturchi",
+          bio: "Zamonaviy va ishonchli web loyihalar yarataman.",
+          experienceYears: 2,
+          email: "karimjonovmuhiddin13@gmail.com"
+        }
+      });
+    }
 
-    await prisma.skill.createMany({
-      data: [
-        { name: "HTML", category: "Frontend", level: 95, order: 1 },
-        { name: "CSS", category: "Frontend", level: 90, order: 2 },
-        { name: "JavaScript", category: "Frontend", level: 85, order: 3 },
-        { name: "React.js", category: "Frontend", level: 80, order: 4 },
-        { name: "TypeScript", category: "Frontend", level: 75, order: 5 },
-        { name: "Tailwind CSS", category: "Frontend", level: 90, order: 6 },
-        { name: "Node.js", category: "Backend", level: 70, order: 7 },
-        { name: "Git", category: "Tools", level: 85, order: 8 }
-      ]
-    });
+    const skillsCount = await prisma.skill.count();
+    if (skillsCount === 0) {
+      await prisma.skill.createMany({
+        data: [
+          { name: "HTML", category: "Frontend", level: 95, order: 1 },
+          { name: "CSS", category: "Frontend", level: 90, order: 2 },
+          { name: "JavaScript", category: "Frontend", level: 85, order: 3 },
+          { name: "React.js", category: "Frontend", level: 80, order: 4 },
+          { name: "TypeScript", category: "Frontend", level: 75, order: 5 },
+          { name: "Tailwind CSS", category: "Frontend", level: 90, order: 6 },
+          { name: "Node.js", category: "Backend", level: 70, order: 7 },
+          { name: "Git", category: "Tools", level: 85, order: 8 }
+        ]
+      });
+    }
 
-    await prisma.project.create({
-      data: {
-        title: "E-commerce Platformasi",
-        description: "To'liq huquqli onlayn do'kon.",
-        tags: ["React", "Node.js", "PostgreSQL"],
-        order: 1
-      }
-    });
+    const projectsCount = await prisma.project.count();
+    if (projectsCount === 0) {
+      await prisma.project.create({
+        data: {
+          title: "E-commerce Platformasi",
+          description: "To'liq huquqli onlayn do'kon.",
+          tags: ["React", "Node.js", "PostgreSQL"],
+          order: 1
+        }
+      });
+    }
 
-    await prisma.education.create({
-      data: {
-        institution: "Najot Ta'lim",
-        degree: "Full Stack Web Dasturlash",
-        startYear: "2023",
-        endYear: "2024",
-        order: 1
-      }
-    });
+    const eduCount = await prisma.education.count();
+    if (eduCount === 0) {
+      await prisma.education.create({
+        data: {
+          institution: "Najot Ta'lim",
+          degree: "Full Stack Web Dasturlash",
+          startYear: "2023",
+          endYear: "2024",
+          order: 1
+        }
+      });
+    }
 
     res.json({ success: true, message: "Barcha ma'lumotlar tiklandi!" });
   } catch (error) {
