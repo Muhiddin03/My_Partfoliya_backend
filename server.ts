@@ -244,46 +244,54 @@ app.get("/api/seed", async (req, res) => {
       });
     }
 
-    const skillsCount = await prisma.skill.count();
-    if (skillsCount === 0) {
-      await prisma.skill.createMany({
-        data: [
-          { name: "HTML", category: "Frontend", level: 95, order: 1 },
-          { name: "CSS", category: "Frontend", level: 90, order: 2 },
-          { name: "JavaScript", category: "Frontend", level: 85, order: 3 },
-          { name: "React.js", category: "Frontend", level: 80, order: 4 },
-          { name: "TypeScript", category: "Frontend", level: 75, order: 5 },
-          { name: "Tailwind CSS", category: "Frontend", level: 90, order: 6 },
-          { name: "Node.js", category: "Backend", level: 70, order: 7 },
-          { name: "Git", category: "Tools", level: 85, order: 8 }
-        ]
-      });
-    }
+    await prisma.skill.deleteMany();
+    await prisma.skill.createMany({
+      data: [
+        { name: "HTML", category: "Frontend", level: 95, order: 1 },
+        { name: "CSS", category: "Frontend", level: 90, order: 2 },
+        { name: "JavaScript", category: "Frontend", level: 85, order: 3 },
+        { name: "React.js", category: "Frontend", level: 80, order: 4 },
+        { name: "TypeScript", category: "Frontend", level: 75, order: 5 },
+        { name: "Tailwind CSS", category: "Frontend", level: 90, order: 6 },
+        { name: "Node.js", category: "Backend", level: 70, order: 7 },
+        { name: "Git", category: "Tools", level: 85, order: 8 }
+      ]
+    });
 
-    const projectsCount = await prisma.project.count();
-    if (projectsCount === 0) {
-      await prisma.project.create({
-        data: {
+    await prisma.project.deleteMany();
+    await prisma.project.createMany({
+      data: [
+        {
           title: "E-commerce Platformasi",
           description: "To'liq huquqli onlayn do'kon.",
           tags: ["React", "Node.js", "PostgreSQL"],
           order: 1
+        },
+        {
+          title: "Portfolio Veb-sayti",
+          description: "Zamonaviy va tezkor shaxsiy veb-sayt.",
+          tags: ["React", "Tailwind CSS", "Vite"],
+          order: 2
+        },
+        {
+          title: "CRM Tizimi",
+          description: "Mijozlar bilan ishlash uchun maxsus tizim.",
+          tags: ["Next.js", "TypeScript", "Prisma"],
+          order: 3
         }
-      });
-    }
+      ]
+    });
 
-    const eduCount = await prisma.education.count();
-    if (eduCount === 0) {
-      await prisma.education.create({
-        data: {
-          institution: "Najot Ta'lim",
-          degree: "Full Stack Web Dasturlash",
-          startYear: "2023",
-          endYear: "2024",
-          order: 1
-        }
-      });
-    }
+    await prisma.education.deleteMany();
+    await prisma.education.create({
+      data: {
+        institution: "Najot Ta'lim",
+        degree: "Full Stack Web Dasturlash",
+        startYear: "2023",
+        endYear: "2024",
+        order: 1
+      }
+    });
 
     res.json({ success: true, message: "Barcha ma'lumotlar tiklandi!" });
   } catch (error) {
