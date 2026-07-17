@@ -153,7 +153,8 @@ app.get("/api/messages", authenticateAdmin, async (req, res) => {
 // 6. Delete Message (Admin)
 app.delete("/api/messages/:id", authenticateAdmin, async (req, res) => {
   try {
-    await prisma.message.delete({ where: { id: req.params.id } });
+    const id = String(req.params.id);
+    await prisma.message.delete({ where: { id } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Server xatoligi" });
@@ -163,8 +164,9 @@ app.delete("/api/messages/:id", authenticateAdmin, async (req, res) => {
 // 7. Mark Message as Read (Admin)
 app.patch("/api/messages/:id/read", authenticateAdmin, async (req, res) => {
   try {
+    const id = String(req.params.id);
     await prisma.message.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { read: true }
     });
     res.json({ success: true });
