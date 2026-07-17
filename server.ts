@@ -239,7 +239,17 @@ app.get("/api/seed", async (req, res) => {
           title: "Full Stack Dasturchi",
           bio: "Zamonaviy va ishonchli web loyihalar yarataman.",
           experienceYears: 2,
-          email: "karimjonovmuhiddin13@gmail.com"
+          email: "karimjonovmuhiddin13@gmail.com",
+          phone: "+998 90 123 45 67",
+          telegram: "https://t.me/username"
+        }
+      });
+    } else {
+      // Mavjud profilga tel va telegram qo'shish (agar bo'sh bo'lsa)
+      await prisma.profile.updateMany({
+        data: {
+          phone: "+998 90 123 45 67",
+          telegram: "https://t.me/username"
         }
       });
     }
